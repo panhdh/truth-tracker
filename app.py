@@ -1,47 +1,62 @@
 from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
 from datetime import datetime
+import re
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # 啟用跨域支持
 
-# 全局變量存儲投票數據和留言
+# 全局變量存儲投票數據、事件和留言
 votes = {'Andy': 0, '家寧': 0}
 comments = []
+
+# 預設時間軸事件
+default_events = [
+    {'date': '2024-10-01', 'desc': 'Andy 發布11分鐘爆料影片，指控家寧奪權'},
+    {'date': '2024-10-04', 'desc': '家寧回應，否認指控並稱有合約證據'},
+    {'date': '2024-10-05', 'desc': '家寧哥哥雞肉攤頂讓，網友質疑轉移焦點'},
+    {'date': '2025-03-14', 'desc': '家寧和母親正式回應，公開部分合約細節'},
+    {'date': '2025-03-14', 'desc': 'Andy直播反駁，稱將公開更多證據'},
+    {'date': '2025-03-15', 'desc': '網友爆料家寧疑似準備推出新頻道'}
+]
+
+# 用戶提交的事件
+user_events = []
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
 
-# 硬編碼的事件數據
-EVENTS = {
-    '家寧Andy爭議': {
-        'timeline': [
-            {
-                'date': '2024-10-01',
-                'event': 'Andy 發布11分鐘爆料影片，指控家寧奪權'
-            },
-            {
-                'date': '2024-10-04',
-                'event': '家寧回應，否認指控並稱有合約證據'
-            },
-            {
-                'date': '2024-10-05',
-                'event': '家寧哥哥雞肉攤頂讓，網友質疑轉移焦點'
-            }
-        ],
-        'analysis': '雙方各執一詞，Andy 強調受害者身份，家寧稱有法律依據，事件真相待證實。'
-    }
-}
+# 事件相關 API
+@app.route('/api/events', methods=['GET'])
+def get_events():
+    # 合併預設事件和用戶提交的事件
+    all_events = default_events + user_events
+    # 按日期排序
+    all_events.sort(key=lambda x: x['date'])
+    return jsonify(all_events)
 
-@app.route('/search/<keyword>')
-def search(keyword):
-    # 查找事件數據
-    event_data = EVENTS.get(keyword, {
-        'timeline': [],
-        'analysis': ''
+@app.route('/api/event', methods=['POST'])
+def add_event():
+    data = request.get_json()
+    date = data.get('date')
+    event = data.get('event')
+    
+    # 驗證日期格式
+    if not date or not re.match(r'\d{4}-\d{2}-\d{2}$', date):
+        return jsonify({'success': False, 'error': '無效的日期格式'}), 400
+    
+    if not event:
+        return jsonify({'success': False, 'error': '事件描述不能為空'}), 400
+    
+    # 新增事件
+    user_events.append({
+        'date': date,
+        'desc': event
     })
-    return jsonify(event_data)
+    
+    # 返回更新後的時間軸
+    return get_events()
 
 # 投票 API
 @app.route('/api/vote', methods=['POST'])
