@@ -1,8 +1,12 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # 啟用跨域支持
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
 
 # 硬編碼的事件數據
 EVENTS = {
