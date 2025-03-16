@@ -2,13 +2,28 @@ from flask import Flask, jsonify, send_from_directory, request
 from flask_cors import CORS
 from datetime import datetime
 import re
+import sqlite3
+import os
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)  # 啟用跨域支持
 
-# 全局變量存儲投票數據、事件和留言
-votes = {'Andy': 0, '家寧': 0}
-comments = []
+# 初始化數據庫
+def init_db():
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS votes
+                 (candidate TEXT PRIMARY KEY, count INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS comments
+                 (comment TEXT, timestamp TEXT)''')
+    
+    # 初始化投票數據
+    c.execute('INSERT OR IGNORE INTO votes (candidate, count) VALUES (?, ?)', ('Andy', 0))
+    c.execute('INSERT OR IGNORE INTO votes (candidate, count) VALUES (?, ?)', ('家寧', 0))
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # 預設時間軸事件
 default_events = [
@@ -64,18 +79,36 @@ def vote():
     data = request.get_json()
     candidate = data.get('candidate')
     
-    if candidate in votes:
-        votes[candidate] += 1
-        return jsonify({'success': True})
-    return jsonify({'success': False, 'error': '無效的候選人'}), 400
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    
+    try:
+        c.execute('SELECT count FROM votes WHERE candidate = ?', (candidate,))
+        result = c.fetchone()
+        if result is not None:
+            c.execute('UPDATE votes SET count = count + 1 WHERE candidate = ?', (candidate,))
+            conn.commit()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': '無效的候選人'}), 400
+    finally:
+        conn.close()
 
 @app.route('/api/vote', methods=['GET'])
 def get_votes():
-    total = sum(votes.values())
-    return jsonify({
-        'votes': votes,
-        'total': total
-    })
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    
+    try:
+        c.execute('SELECT candidate, count FROM votes')
+        results = c.fetchall()
+        votes_dict = {candidate: count for candidate, count in results}
+        total = sum(votes_dict.values())
+        return jsonify({
+            'votes': votes_dict,
+            'total': total
+        })
+    finally:
+        conn.close()
 
 # 留言 API
 @app.route('/api/comment', methods=['POST'])
@@ -84,19 +117,28 @@ def add_comment():
     comment = data.get('comment')
     
     if comment:
-        comment_data = {
-            'comment': comment,
-            'timestamp': datetime.now().isoformat()
-        }
-        comments.append(comment_data)
-        return jsonify({'success': True})
+        conn = sqlite3.connect('votes.db')
+        c = conn.cursor()
+        try:
+            timestamp = datetime.now().isoformat()
+            c.execute('INSERT INTO comments (comment, timestamp) VALUES (?, ?)', (comment, timestamp))
+            conn.commit()
+            return jsonify({'success': True})
+        finally:
+            conn.close()
     return jsonify({'success': False, 'error': '留言不能為空'}), 400
 
 @app.route('/api/comments', methods=['GET'])
 def get_comments():
-    # 按時間倒序排序
-    sorted_comments = sorted(comments, key=lambda x: x['timestamp'], reverse=True)
-    return jsonify(sorted_comments)
+    conn = sqlite3.connect('votes.db')
+    c = conn.cursor()
+    try:
+        c.execute('SELECT comment, timestamp FROM comments ORDER BY timestamp DESC')
+        results = c.fetchall()
+        comments_list = [{'comment': comment, 'timestamp': timestamp} for comment, timestamp in results]
+        return jsonify(comments_list)
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     import os

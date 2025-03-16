@@ -457,9 +457,13 @@
 
         // 支持按鈕點擊處理
         async function support(person) {
-            // 檢查是否已投票
-            if (localStorage.getItem('hasVoted') === 'true') {
-                showNotification('您已經投過票了！');
+            // 檢查是否已投票，並檢查投票時間戳
+            const voteTimestamp = localStorage.getItem('voteTimestamp');
+            const currentTime = new Date().getTime();
+            
+            // 如果有投票記錄，檢查是否已過期（1小時後過期）
+            if (voteTimestamp && (currentTime - parseInt(voteTimestamp)) < 3600000) {
+                showNotification('您已經投過票了！請稍後再試');
                 return;
             }
 
@@ -471,8 +475,8 @@
                 });
 
                 if (response.ok) {
-                    // 記錄投票狀態
-                    localStorage.setItem('hasVoted', 'true');
+                    // 記錄投票時間戳
+                    localStorage.setItem('voteTimestamp', new Date().getTime().toString());
                     // 禁用投票按鈕
                     andyButton.disabled = true;
                     jianingButton.disabled = true;
