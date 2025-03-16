@@ -1,12 +1,12 @@
-# 真相追蹤器部署說明
+# Truth Tracker 部署說明文件
 
-## 1. 程式碼準備
+## 問題修正
 
-### 1.1 檢查本地檔案
-- 確保 `index.html` 和 `app.py` 都能正常運行
-- 檢查 `requirements.txt` 已包含所有依賴：
+### 1. 依賴包配置
+- 確認 `requirements.txt` 已包含以下依賴：
   ```
   Flask==2.0.1
+  flask-cors==3.0.10
   Werkzeug==2.0.1
   Jinja2==3.0.1
   MarkupSafe==2.0.1
@@ -14,100 +14,60 @@
   click==8.0.1
   ```
 
-### 1.2 上傳到 GitHub
-1. 初始化 Git 倉庫：
-   ```bash
-   git init
-   ```
+### 2. 應用配置
+- 已修改 `app.py`，確保：
+  - 已導入 `flask_cors`
+  - 已啟用 CORS 支持
+  - 已正確配置端口和主機設置
 
-2. 添加檔案到暫存區：
-   ```bash
-   git add index.html app.py requirements.txt
-   ```
+### 3. 提交更新到 GitHub
+```bash
+git add .
+git commit -m "Fix dependencies"
+git push
+```
 
-3. 提交變更：
-   ```bash
-   git commit -m "初始提交：真相追蹤器專案"
-   ```
+## 重新部署到 Render
 
-4. 在 GitHub 創建新倉庫
-   - 前往 https://github.com/new
-   - 輸入倉庫名稱（例如：truth-tracker）
-   - 選擇公開（Public）
-   - 不要初始化 README
+1. 訪問 [Render 儀表板](https://dashboard.render.com)
+2. 進入對應的 Web Service
+3. 等待自動重新部署完成
+4. 檢查 Logs 標籤頁，確認無錯誤信息
+5. 點擊生成的 URL 進行測試（例如 https://truth-tracker-xxxx.onrender.com）
 
-5. 推送到 GitHub：
-   ```bash
-   git remote add origin https://github.com/你的用戶名/truth-tracker.git
-   git branch -M main
-   git push -u origin main
-   ```
+## 功能測試
 
-## 2. Render 部署
+1. 時間軸功能
+   - 輸入關鍵字搜索事件
+   - 確認時間軸正確顯示
 
-### 2.1 註冊 Render 帳號
-1. 前往 https://render.com
-2. 點擊「Sign Up」
-3. 建議使用 GitHub 帳號登入，方便連接倉庫
+2. 投票功能
+   - 測試投票按鈕
+   - 確認投票結果更新
 
-### 2.2 創建 Web Service
-1. 點擊 Dashboard 中的「New +」→「Web Service」
-2. 選擇之前創建的 GitHub 倉庫
-3. 填寫基本配置：
-   - **名稱**：truth-tracker（或其他名稱）
-   - **環境**：Python 3
-   - **構建命令**：`pip install -r requirements.txt`
-   - **啟動命令**：`python app.py`
-   - **計劃**：選擇免費方案（Free）
+3. 提交真相功能
+   - 測試提交表單
+   - 確認提交成功
 
-### 2.3 更新前端 API
-1. 修改 `index.html` 中的 API 請求地址：
-   - 將所有 `fetch('http://localhost:5000/...')` 改為：
-   - `fetch('https://你的應用名稱.onrender.com/...')`
+## 注意事項
 
-2. 重新提交到 GitHub：
-   ```bash
-   git add index.html
-   git commit -m "更新 API 地址為 Render URL"
-   git push
-   ```
+1. Render 免費方案特性
+   - 有休眠機制
+   - 首次訪問可能需要等待約 50 秒
+   - 長時間未訪問會自動休眠
 
-## 3. 測試與分享
+2. 故障排查
+   - 如遇部署失敗，檢查 Logs 中的錯誤信息
+   - 確認所有依賴包版本兼容
+   - 檢查環境變量配置
 
-### 3.1 功能測試
-1. 等待 Render 部署完成（約 5-10 分鐘）
-2. 打開應用 URL：`https://你的應用名稱.onrender.com`
-3. 測試以下功能：
-   - 時間軸顯示
-   - 支持投票系統
-   - 真相提交功能
+3. 性能優化
+   - 建議使用緩存機制
+   - 優化資源加載
+   - 減少不必要的 API 請求
 
-### 3.2 分享應用
-1. 複製應用 URL
-2. 在 X（Twitter）上分享：
-   - 建議附上簡短說明和主要功能介紹
-   - 加上相關標籤（例如 #真相追蹤 #專案分享）
+## 分享與推廣
 
-## 4. 注意事項
-
-### 4.1 Render 免費方案限制
-- 15 分鐘無訪問後會進入休眠狀態
-- 首次訪問可能需要等待 30 秒左右喚醒
-- 每月有 750 小時免費使用時間
-
-### 4.2 未來優化建議
-1. 資料持久化
-   - 考慮接入 MongoDB 或 PostgreSQL 資料庫
-   - 將用戶提交的真相儲存到資料庫
-   - 添加用戶認證系統
-
-2. 性能優化
-   - 實現前端緩存機制
-   - 優化 API 請求頻率
-   - 考慮使用 CDN 加速靜態資源
-
-### 4.3 故障排除
-- 如果部署失敗，檢查 Render 日誌
-- 確保所有依賴都已列在 requirements.txt
-- 檢查 API 請求地址是否正確
-- 確認 app.py 中的 host 和 port 配置正確
+1. 在 X（Twitter）上分享應用鏈接
+2. 收集用戶反饋
+3. 持續優化功能和性能
