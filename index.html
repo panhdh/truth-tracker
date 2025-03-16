@@ -306,6 +306,17 @@
         const truthForm = document.getElementById('truthForm');
         const voteReason = document.getElementById('voteReason');
         const voteComments = document.getElementById('voteComments');
+        const andyButton = document.getElementById('andyButton');
+        const jianingButton = document.getElementById('jianingButton');
+
+        // 檢查投票狀態
+        const hasVoted = localStorage.getItem('hasVoted') === 'true';
+        if (hasVoted) {
+            andyButton.disabled = true;
+            jianingButton.disabled = true;
+            andyButton.textContent = '您已投票！';
+            jianingButton.textContent = '您已投票！';
+        }
 
         // 初始化頁面
         window.onload = async function() {
@@ -446,6 +457,12 @@
 
         // 支持按鈕點擊處理
         async function support(person) {
+            // 檢查是否已投票
+            if (localStorage.getItem('hasVoted') === 'true') {
+                showNotification('您已經投過票了！');
+                return;
+            }
+
             try {
                 const response = await fetch('/api/vote', {
                     method: 'POST',
@@ -454,6 +471,14 @@
                 });
 
                 if (response.ok) {
+                    // 記錄投票狀態
+                    localStorage.setItem('hasVoted', 'true');
+                    // 禁用投票按鈕
+                    andyButton.disabled = true;
+                    jianingButton.disabled = true;
+                    andyButton.textContent = '您已投票！';
+                    jianingButton.textContent = '您已投票！';
+                    
                     voteReason.style.display = 'block';
                     voteReason.dataset.votedPerson = person;
                     await loadVoteData();
